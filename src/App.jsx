@@ -7,116 +7,149 @@ const moduleData = {
   attendance: 0,
   modulePSP: 0,
   days: [
-    { id: 1, date: "18 MAY", label: "DAY 1", topic: "Data Engineering 101", isOptional: false, masteryMode: null, lecture: 100, assignment: { done: 0, total: 10 } },
-    { id: 2, date: "20 MAY", label: "DAY 2", topic: "Introduction to Data Engineering", isOptional: false, masteryMode: null, lecture: 100, assignment: { done: 0, total: 10 } },
-    { id: 3, date: "22 MAY", label: "DAY 3", topic: "Writing Efficient Queries: Part 1", isOptional: false, masteryMode: null, lecture: 100, assignment: { done: 0, total: 10 } },
-    { id: 4, date: "24 MAY", label: "DAY 4", topic: "Writing Efficient Queries: Part 2", isOptional: false, masteryMode: null, lecture: 100, assignment: { done: 0, total: 10 } },
-    { id: 5, date: "26 MAY", label: "DAY 5", topic: "Intro to Hadoop", isOptional: false, masteryMode: null, lecture: 100, assignment: { done: 0, total: 10 } },
-    { id: 6, date: "28 MAY", label: "DAY 6", topic: "HDFS and MAP-REDUCE", isOptional: false, masteryMode: null, lecture: 100, assignment: { done: 0, total: 10 } },
-    { id: 7, date: "30 MAY", label: "DAY 7", topic: "Introduction to Hive", isOptional: false, masteryMode: null, lecture: 100, assignment: { done: 0, total: 10 } },
-    { id: 8, date: "1 APR", label: "DAY 8", topic: "Advanced features of Hive", isOptional: false, masteryMode: null, lecture: 100, assignment: { done: 0, total: 10 } },
+    { id: 1, date: "18 MAY", calDay: 18, calMonth: 4, calYear: 2026, label: "DAY 1", topic: "Data Engineering 101", lecture: 100, assignment: { done: 0, total: 10 } },
+    { id: 2, date: "20 MAY", calDay: 20, calMonth: 4, calYear: 2026, label: "DAY 2", topic: "Introduction to Data Engineering", lecture: 100, assignment: { done: 0, total: 10 } },
+    { id: 3, date: "22 MAY", calDay: 22, calMonth: 4, calYear: 2026, label: "DAY 3", topic: "Writing Efficient Queries: Part 1", lecture: 100, assignment: { done: 0, total: 10 } },
+    { id: 4, date: "24 MAY", calDay: 24, calMonth: 4, calYear: 2026, label: "DAY 4", topic: "Writing Efficient Queries: Part 2", lecture: 100, assignment: { done: 0, total: 10 } },
+    { id: 5, date: "26 MAY", calDay: 26, calMonth: 4, calYear: 2026, label: "DAY 5", topic: "Intro to Hadoop", lecture: 100, assignment: { done: 0, total: 10 } },
+    { id: 6, date: "28 MAY", calDay: 28, calMonth: 4, calYear: 2026, label: "DAY 6", topic: "HDFS and MAP-REDUCE", lecture: 100, assignment: { done: 0, total: 10 } },
+    { id: 7, date: "30 MAY", calDay: 30, calMonth: 4, calYear: 2026, label: "DAY 7", topic: "Introduction to Hive", lecture: 100, assignment: { done: 0, total: 10 } },
+    { id: 8, date: "1 JUN", calDay: 1, calMonth: 5, calYear: 2026, label: "DAY 8", topic: "Advanced features of Hive", lecture: 100, assignment: { done: 0, total: 10 } },
   ],
 };
 
-const dayColors = ["#f97316", "#8b5cf6", "#06b6d4", "#10b981", "#f43f5e", "#3b82f6", "#eab308", "#ec4899"];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function AssignmentBadge({ done, total }) {
-  if (done === null || total === null) return <span style={{ color: "#9ca3af" }}>-</span>;
-  const color = done === total ? "#16a34a" : "#dc2626";
-  return <span style={{ color, fontWeight: 700 }}>{done} / {total}</span>;
+function Calendar({ onDateClick }) {
+  const today = new Date();
+  const [currentDate, setCurrentDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const monthName = currentDate.toLocaleString("default", { month: "long" });
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const moduleDayMap = {};
+  moduleData.days.forEach((d, i) => {
+    if (d.calMonth === month && d.calYear === year) {
+      moduleDayMap[d.calDay] = i;
+    }
+  });
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+          style={{ background: "#f3f4f6", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 18 }}>‹</button>
+        <span style={{ fontWeight: 700, fontSize: 18, color: "#1f2937" }}>{monthName} {year}</span>
+        <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+          style={{ background: "#f3f4f6", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 18 }}>›</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 8 }}>
+        {DAYS.map(d => (
+          <div key={d} style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: "#9ca3af", padding: "4px 0" }}>{d}</div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+        {cells.map((day, i) => {
+          const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+          const isModuleDay = day !== null && moduleDayMap[day] !== undefined;
+          return (
+            <div key={i} onClick={() => isModuleDay && onDateClick(moduleDayMap[day])}
+              style={{
+                textAlign: "center", padding: "10px 4px", borderRadius: 10, fontSize: 14,
+                fontWeight: isToday || isModuleDay ? 700 : 400,
+                background: isToday ? "linear-gradient(135deg, #f97316, #ec4899)" : isModuleDay ? "#fff7ed" : "transparent",
+                color: isToday ? "#fff" : isModuleDay ? "#f97316" : day ? "#374151" : "transparent",
+                cursor: isModuleDay ? "pointer" : "default",
+                border: isModuleDay && !isToday ? "2px solid #f97316" : "2px solid transparent",
+              }}>{day || ""}</div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 12, height: 12, borderRadius: 3, background: "#fff7ed", border: "2px solid #f97316" }}></div>
+        <span style={{ fontSize: 12, color: "#6b7280" }}>Module class day — click to view</span>
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
-  const [expanded, setExpanded] = useState(null);
-  const { moduleNumber, duration, title, attendance, modulePSP, days } = moduleData;
+  const [expanded, setExpanded] = useState(false);
+  const [highlightedDay, setHighlightedDay] = useState(null);
+
+  const handleDateClick = (dayIndex) => {
+    setExpanded(true);
+    setHighlightedDay(dayIndex);
+    setTimeout(() => {
+      document.getElementById(`day-${dayIndex}`)?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "32px 16px", fontFamily: "Segoe UI, sans-serif" }}>
-      <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 8px 32px rgba(0,0,0,0.2)", maxWidth: 960, margin: "0 auto", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "32px 24px", fontFamily: "Segoe UI, sans-serif" }}>
 
-        {/* Header */}
-        <div style={{ background: "linear-gradient(90deg, #f97316, #ec4899)", padding: "28px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.25)", borderRadius: 999, padding: "2px 12px" }}>MODULE - {moduleNumber}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.25)", borderRadius: 999, padding: "2px 12px" }}>{duration}</span>
-            </div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: 1 }}>{title}</h1>
-          </div>
-          <div style={{ display: "flex", gap: 16 }}>
-            <div style={{ textAlign: "center", background: "rgba(255,255,255,0.2)", borderRadius: 12, padding: "10px 20px" }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#fff" }}>{attendance}%</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.85)" }}>Attendance</div>
-            </div>
-            <div style={{ textAlign: "center", background: "rgba(255,255,255,0.2)", borderRadius: 12, padding: "10px 20px" }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#fff" }}>{modulePSP}%</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.85)" }}>Module PSP</div>
-            </div>
-          </div>
+      <h1 style={{ textAlign: "center", color: "#fff", fontSize: 32, fontWeight: 800, marginBottom: 32 }}>
+        📚 Course Dashboard
+      </h1>
+
+      <div style={{ display: "flex", gap: 28, maxWidth: 1200, margin: "0 auto", alignItems: "flex-start", flexWrap: "wrap" }}>
+
+        {/* Left - Calendar */}
+        <div style={{ flex: "1 1 380px" }}>
+          <Calendar onDateClick={handleDateClick} />
         </div>
 
-        {/* Rows */}
-        {days.map((day, index) => (
-          <div
-            key={day.id}
-            onClick={() => setExpanded(expanded === day.id ? null : day.id)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "16px 28px",
-              borderBottom: "1px solid #f3f4f6",
-              cursor: "pointer",
-              background: expanded === day.id ? "#fdf4ff" : "#fff",
-              transition: "background 0.2s",
-            }}
-          >
-            {/* Color Bar */}
-            <div style={{ width: 5, height: 40, borderRadius: 99, background: dayColors[index % dayColors.length], marginRight: 16 }} />
+        {/* Right - Module */}
+        <div style={{ flex: "1 1 380px" }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
 
-            {/* Left */}
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: dayColors[index % dayColors.length], borderRadius: 6, padding: "2px 10px" }}>{day.label}</span>
-                <span style={{ fontSize: 12, color: "#6b7280" }}>{day.date}</span>
+            {/* Module Header */}
+            <div onClick={() => setExpanded(!expanded)}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", padding: "16px 20px", background: "linear-gradient(90deg, #f97316, #ec4899)", borderRadius: 14, marginBottom: expanded ? 16 : 0 }}>
+              <div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>MODULE {moduleData.moduleNumber} • {moduleData.duration}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{moduleData.title}</div>
               </div>
-              <span style={{ fontSize: 15, fontWeight: 600, color: "#1f2937" }}>{day.topic}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ textAlign: "center", background: "rgba(255,255,255,0.2)", borderRadius: 10, padding: "6px 14px" }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>{moduleData.attendance}%</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)" }}>Attendance</div>
+                </div>
+                <div style={{ textAlign: "center", background: "rgba(255,255,255,0.2)", borderRadius: 10, padding: "6px 14px" }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>{moduleData.modulePSP}%</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)" }}>PSP</div>
+                </div>
+                <span style={{ color: "#fff", fontSize: 22 }}>{expanded ? "▲" : "▼"}</span>
+              </div>
             </div>
 
-            {/* Mastery */}
-            <div style={{ width: 130, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 2 }}>Mastery Mode</div>
-              {day.masteryMode ? (
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#16a34a" }}> Achieved</span>
-              ) : (
-                <span style={{ color: "#9ca3af" }}>-</span>
-              )}
-            </div>
+            {/* Topics */}
+            {expanded && (
+              <div style={{ marginTop: 8 }}>
+                {moduleData.days.map((day, index) => (
+                  <div id={`day-${index}`} key={day.id} style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                    borderRadius: 10, marginBottom: 6,
+                    background: highlightedDay === index ? "#fff7ed" : "#fafafa",
+                    border: highlightedDay === index ? "2px solid #f97316" : "2px solid transparent",
+                  }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: "#f97316", borderRadius: 6, padding: "3px 8px", whiteSpace: "nowrap" }}>{day.label}</span>
+                    <span style={{ fontSize: 12, color: "#9ca3af", whiteSpace: "nowrap" }}>{day.date}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#1f2937", flex: 1 }}>{day.topic}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#16a34a", whiteSpace: "nowrap" }}>Lecture: {day.lecture}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {/* Lecture */}
-            <div style={{ width: 110, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 2 }}>Lecture</div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#10b981" }}>{day.lecture}.0%</span>
-            </div>
-
-            {/* Assignment */}
-            <div style={{ width: 110, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 2 }}>Assignment</div>
-              <AssignmentBadge done={day.assignment?.done ?? null} total={day.assignment?.total ?? null} />
-            </div>
-
-            {/* Additional Problem */}
-            <div style={{ width: 140, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 2 }}>Additional Problem</div>
-              <span style={{ color: "#9ca3af" }}>-</span>
-            </div>
-
-            {/* Chevron */}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={dayColors[index % dayColors.length]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              style={{ transform: expanded === day.id ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
