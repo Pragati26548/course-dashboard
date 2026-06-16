@@ -29,7 +29,8 @@ function datesOverlap(start1, end1, start2, end2) {
 
 function parseTime(timeStr) {
   if (!timeStr) return null;
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  const cleaned = timeStr.trim();
+  const match = cleaned.match(/(\d+):(\d+)\s*(AM|PM)/i);
   if (!match) return null;
   let hrs = parseInt(match[1]);
   const mins = parseInt(match[2]);
@@ -41,7 +42,7 @@ function parseTime(timeStr) {
 
 function getSlotType(timeSlot, hoursPerDay) {
   if (parseInt(hoursPerDay) >= 8) return "fullday";
-  const parts = timeSlot.split("–").map(s => s.trim());
+  const parts = timeSlot.split(/\s*[–-]\s*/);
   if (parts.length < 2) return "unknown";
   const startMins = parseTime(parts[0]);
   if (startMins === null) return "unknown";
