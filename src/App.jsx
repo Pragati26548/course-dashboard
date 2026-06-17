@@ -95,11 +95,14 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
   const monthName = currentDate.toLocaleString("default", { month: "long" });
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  const isAnyModuleClassDay = (day) =>
-    modules.some(mod => isClassDay(day, month, year, mod.startDate, mod.endDate));
+
+  const getModulesForDay = (day) =>
+    modules.filter(mod => isClassDay(day, month, year, mod.startDate, mod.endDate));
+
   return (
     <div style={{ background: "#fff", borderRadius: 20, padding: collapsed ? 16 : 24, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
       {!collapsed ? (
@@ -113,33 +116,71 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
       ) : (
         <div style={{ fontWeight: 800, fontSize: 14, color: "#1f2937", marginBottom: 8, textAlign: "center" }}>{monthName} {year}</div>
       )}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 6 }}>
         {DAYS_SHORT.map(d => (
           <div key={d} style={{ textAlign: "center", fontSize: collapsed ? 9 : 12, fontWeight: 700, color: d === "Sun" ? "#f87171" : "#9ca3af" }}>{d}</div>
         ))}
       </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: collapsed ? 2 : 4 }}>
         {cells.map((day, i) => {
           if (!day) return <div key={i}></div>;
           const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-          const classDay = isAnyModuleClassDay(day);
+          const dayModules = getModulesForDay(day);
+          const isClassday = dayModules.length > 0;
           const isSelected = selectedDate && selectedDate.day === day && selectedDate.month === month && selectedDate.year === year;
-          let bg = "transparent", textColor = isSunday(day, month, year) ? "#f87171" : "#374151", border = "2px solid transparent", cursor = "default";
-          if (isSelected) { bg = "linear-gradient(135deg, #f97316, #10b981)"; textColor = "#fff"; cursor = "pointer"; }
-          else if (isToday) { bg = "linear-gradient(135deg, #f97316, #ec4899)"; textColor = "#fff"; }
-          else if (classDay) { bg = "#fff7ed"; textColor = "#f97316"; border = "2px solid #f97316"; cursor = "pointer"; }
+          const firstColor = dayModules[0]?.color?.from || "#f97316";
+
+          let bg = "transparent";
+          let textColor = isSunday(day, month, year) ? "#f87171" : "#374151";
+          let border = "2px solid transparent";
+          let cursor = "default";
+
+          if (isSelected) {
+            if (dayModules.length === 1) {
+              bg = dayModules[0].color.from;
+            } else if (dayModules.length > 1) {
+              bg = `linear-gradient(135deg, ${dayModules[0].color.from}, ${dayModules[1].color.from})`;
+            } else {
+              bg = "#f97316";
+            }
+            textColor = "#fff";
+            cursor = "pointer";
+          } else if (isToday) {
+            bg = "linear-gradient(135deg, #f97316, #ec4899)";
+            textColor = "#fff";
+          } else if (isClassday) {
+            bg = `${firstColor}1a`;
+            textColor = firstColor;
+            border = `2px solid ${firstColor}`;
+            cursor = "pointer";
+          }
+
           return (
-            <div key={i} onClick={() => classDay && onDateClick(day, month, year)}
-              style={{ textAlign: "center", padding: collapsed ? "4px 1px" : "8px 2px", borderRadius: collapsed ? 6 : 10, fontSize: collapsed ? 10 : 13, background: bg, color: textColor, cursor, border, fontWeight: classDay ? 700 : 400 }}>
+            <div key={i} onClick={() => isClassday && onDateClick(day, month, year)}
+              style={{ textAlign: "center", padding: collapsed ? "2px 1px" : "6px 2px", borderRadius: collapsed ? 6 : 10, fontSize: collapsed ? 10 : 13, background: bg, color: textColor, cursor, border, fontWeight: isClassday ? 700 : 400, position: "relative" }}>
               {day}
+              {!isSelected && !isToday && isClassday && (
+                <div style={{ display: "flex", justifyContent: "center", gap: 2, marginTop: 1 }}>
+                  {dayModules.map((mod, idx) => (
+                    <div key={idx} style={{ width: collapsed ? 3 : 4, height: collapsed ? 3 : 4, borderRadius: "50%", background: mod.color.from }} />
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+
       {!collapsed && (
-        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 10, height: 10, borderRadius: 3, background: "#fff7ed", border: "2px solid #f97316" }}></div>
-          <span style={{ fontSize: 11, color: "#6b7280" }}>Class day — click to view</span>
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+          {modules.map(mod => (
+            <div key={mod.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: `${mod.color.from}1a`, border: `2px solid ${mod.color.from}` }}></div>
+              <span style={{ fontSize: 11, color: "#6b7280" }}>{mod.title}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -211,6 +252,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
     topics: editingModule?.days.map(d => d.topic).join("\n") || "",
   });
   const [slotError, setSlotError] = useState("");
+
   const colors = [
     { from: "#f97316", to: "#ec4899" },
     { from: "#10b981", to: "#0ea5e9" },
@@ -219,6 +261,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
     { from: "#0ea5e9", to: "#6366f1" },
     { from: "#14b8a6", to: "#84cc16" },
   ];
+
   const handleHoursChange = (val) => {
     const hrs = parseInt(val);
     if (hrs >= 8) {
@@ -227,10 +270,12 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
       setForm(prev => ({ ...prev, hoursPerDay: val, timeSlot: "", slotChoice: "" }));
     }
   };
+
   const handleSlotChoice = (choice) => {
     const slot = choice === "morning" ? "9:00 AM – 1:00 PM" : "1:30 PM – 5:30 PM";
     setForm(prev => ({ ...prev, slotChoice: choice, timeSlot: slot }));
   };
+
   const handleSubmit = () => {
     if (!form.title || !form.hoursPerDay || !form.timeSlot || !form.startDate || !form.endDate) {
       alert("Please fill in all required fields!");
@@ -279,9 +324,11 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
     });
     onClose();
   };
+
   const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e5e7eb", fontSize: 14, outline: "none", boxSizing: "border-box", marginTop: 4 };
   const labelStyle = { fontSize: 13, fontWeight: 600, color: "#374151" };
   const hrs = parseInt(form.hoursPerDay);
+
   return (
     <>
       {slotError && <SlotPopup message={slotError} onClose={() => setSlotError("")} />}
@@ -386,12 +433,14 @@ export default function App() {
       ],
     },
   ]);
+
   const [expandedModules, setExpandedModules] = useState({});
   const [highlightedDays, setHighlightedDays] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingModule, setEditingModule] = useState(null);
+
   const handleSaveModule = (moduleData) => {
     setModules(prev => {
       const exists = prev.find(m => m.id === moduleData.id);
@@ -399,6 +448,7 @@ export default function App() {
       return [...prev, moduleData];
     });
   };
+
   const handleExpand = (id) => setExpandedModules(prev => ({ ...prev, [id]: true }));
   const handleClose = (id) => {
     const newExpanded = { ...expandedModules, [id]: false };
@@ -409,21 +459,32 @@ export default function App() {
       setCalendarCollapsed(false);
     }
   };
+
   const handleDateClick = (day, month, year) => {
-    setSelectedDate({ day, month, year });
-    setCalendarCollapsed(true);
-    const newHighlights = {}, newExpanded = {};
-    modules.forEach(mod => {
-      const idx = mod.days.findIndex(d => d.calDay === day && d.calMonth === month && d.calYear === year);
-      newHighlights[mod.id] = idx >= 0 ? idx : null;
-      newExpanded[mod.id] = idx >= 0;
-    });
-    setHighlightedDays(newHighlights);
-    setExpandedModules(newExpanded);
+  const isSameDate = selectedDate && selectedDate.day === day && selectedDate.month === month && selectedDate.year === year;
+  if (isSameDate) {
+    setSelectedDate(null);
+    setHighlightedDays({});
+    setExpandedModules({});
+    setCalendarCollapsed(false);
+    return;
+  }
+  setSelectedDate({ day, month, year });
+  setCalendarCollapsed(true);
+  const newHighlights = {}, newExpanded = {};
+  modules.forEach(mod => {
+    const idx = mod.days.findIndex(d => d.calDay === day && d.calMonth === month && d.calYear === year);
+    newHighlights[mod.id] = idx >= 0 ? idx : null;
+    newExpanded[mod.id] = idx >= 0;
+  });
+  setHighlightedDays(newHighlights);
+  setExpandedModules(newExpanded);
   };
+
   const openAddForm = () => { setEditingModule(null); setShowForm(true); };
   const openEditForm = (mod) => { setEditingModule(mod); setShowForm(true); };
   const closeForm = () => { setShowForm(false); setEditingModule(null); };
+
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "32px 24px", fontFamily: "Segoe UI, sans-serif" }}>
       <h1 style={{ textAlign: "center", color: "#fff", fontSize: 32, fontWeight: 800, marginBottom: 4 }}>📚 Course Dashboard</h1>
