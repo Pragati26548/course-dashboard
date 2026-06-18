@@ -87,6 +87,16 @@ function generateDays(startDate, endDate, topicsText) {
   return days;
 }
 
+// ---- Professional, minimal color palette (Calendly-inspired) ----
+const PALETTE = [
+  { accent: "#0a66ff", soft: "#eaf1ff" }, // blue
+  { accent: "#0d9488", soft: "#e6f7f5" }, // teal
+  { accent: "#7c3aed", soft: "#f1ebfd" }, // violet
+  { accent: "#dc2626", soft: "#fdecec" }, // red
+  { accent: "#ca8a04", soft: "#fdf6e3" }, // amber
+  { accent: "#059669", soft: "#e7f8f0" }, // green
+];
+
 function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1));
@@ -104,22 +114,22 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
     modules.filter(mod => isClassDay(day, month, year, mod.startDate, mod.endDate));
 
   return (
-    <div style={{ background: "#fff", borderRadius: 20, padding: collapsed ? 16 : 24, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+    <div style={{ background: "#fff", borderRadius: 12, padding: collapsed ? 16 : 24, border: "1px solid #e5e7eb" }}>
       {!collapsed ? (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-            style={{ background: "#f3f4f6", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 18 }}>‹</button>
-          <span style={{ fontWeight: 800, fontSize: 18, color: "#1f2937" }}>{monthName} {year}</span>
+            style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 16, color: "#475569" }}>‹</button>
+          <span style={{ fontWeight: 600, fontSize: 16, color: "#1e293b" }}>{monthName} {year}</span>
           <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-            style={{ background: "#f3f4f6", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 18 }}>›</button>
+            style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 16, color: "#475569" }}>›</button>
         </div>
       ) : (
-        <div style={{ fontWeight: 800, fontSize: 14, color: "#1f2937", marginBottom: 8, textAlign: "center" }}>{monthName} {year}</div>
+        <div style={{ fontWeight: 600, fontSize: 13, color: "#1e293b", marginBottom: 8, textAlign: "center" }}>{monthName} {year}</div>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 6 }}>
         {DAYS_SHORT.map(d => (
-          <div key={d} style={{ textAlign: "center", fontSize: collapsed ? 9 : 12, fontWeight: 700, color: d === "Sun" ? "#f87171" : "#9ca3af" }}>{d}</div>
+          <div key={d} style={{ textAlign: "center", fontSize: collapsed ? 9 : 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase" }}>{d}</div>
         ))}
       </div>
 
@@ -130,55 +140,44 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
           const dayModules = getModulesForDay(day);
           const isClassday = dayModules.length > 0;
           const isSelected = selectedDate && selectedDate.day === day && selectedDate.month === month && selectedDate.year === year;
-          const firstColor = dayModules[0]?.color?.from || "#f97316";
+          const firstAccent = dayModules[0]?.color?.accent || "#0a66ff";
 
           let bg = "transparent";
-          let textColor = isSunday(day, month, year) ? "#f87171" : "#374151";
-          let border = "2px solid transparent";
+          let textColor = isSunday(day, month, year) ? "#cbd5e1" : "#334155";
           let cursor = "default";
 
           if (isSelected) {
-            if (dayModules.length === 1) {
-              bg = dayModules[0].color.from;
-            } else if (dayModules.length > 1) {
-              bg = `linear-gradient(135deg, ${dayModules[0].color.from}, ${dayModules[1].color.from})`;
-            } else {
-              bg = "#f97316";
-            }
+            bg = "#1e293b";
             textColor = "#fff";
             cursor = "pointer";
           } else if (isToday) {
-            bg = "linear-gradient(135deg, #f97316, #ec4899)";
+            bg = "#1e293b";
             textColor = "#fff";
           } else if (isClassday) {
-            bg = `${firstColor}1a`;
-            textColor = firstColor;
-            border = `2px solid ${firstColor}`;
+            textColor = firstAccent;
             cursor = "pointer";
           }
 
           return (
             <div key={i} onClick={() => isClassday && onDateClick(day, month, year)}
-              style={{ textAlign: "center", padding: collapsed ? "2px 1px" : "6px 2px", borderRadius: collapsed ? 6 : 10, fontSize: collapsed ? 10 : 13, background: bg, color: textColor, cursor, border, fontWeight: isClassday ? 700 : 400, position: "relative" }}>
+              style={{ textAlign: "center", padding: collapsed ? "4px 1px" : "8px 2px", borderRadius: 8, fontSize: collapsed ? 10 : 13, background: bg, color: textColor, cursor, fontWeight: isClassday || isToday || isSelected ? 700 : 400 }}>
               {day}
-              {!isSelected && !isToday && isClassday && (
-                <div style={{ display: "flex", justifyContent: "center", gap: 2, marginTop: 1 }}>
-                  {dayModules.map((mod, idx) => (
-                    <div key={idx} style={{ width: collapsed ? 3 : 4, height: collapsed ? 3 : 4, borderRadius: "50%", background: mod.color.from }} />
-                  ))}
-                </div>
-              )}
             </div>
           );
         })}
       </div>
 
       {!collapsed && (
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-          {modules.map(mod => (
-            <div key={mod.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: `${mod.color.from}1a`, border: `2px solid ${mod.color.from}` }}></div>
-              <span style={{ fontSize: 11, color: "#6b7280" }}>{mod.title}</span>
+        <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8, paddingTop: 14, borderTop: "1px solid #f1f5f9" }}>
+          {modules.filter(mod => {
+            for (let d = 1; d <= daysInMonth; d++) {
+              if (isClassDay(d, month, year, mod.startDate, mod.endDate)) return true;
+            }
+            return false;
+          }).map(mod => (
+            <div key={mod.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: mod.color.accent }}></div>
+              <span style={{ fontSize: 12, color: "#64748b" }}>{mod.title}</span>
             </div>
           ))}
         </div>
@@ -188,35 +187,36 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
 }
 
 function ModuleCard({ module, highlightedDay, expanded, onExpand, onClose, onEdit }) {
-  const { from, to } = module.color;
+  const { accent } = module.color;
   return (
-    <div style={{ background: "#fff", borderRadius: 20, padding: 20, boxShadow: "0 4px 20px rgba(0,0,0,0.08)", flex: "1 1 300px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", padding: "12px 16px", background: `linear-gradient(90deg, ${from}, ${to})`, borderRadius: 14, marginBottom: expanded ? 12 : 0 }}
+    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", flex: "1 1 300px", overflow: "hidden" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", padding: "16px 18px", borderLeft: `3px solid ${accent}` }}
         onClick={() => expanded ? onClose(module.id) : onExpand(module.id)}>
         <div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>MODULE {module.moduleNumber}</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{module.title}</div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", marginTop: 2 }}>{module.duration} hrs/day</div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, background: "rgba(255,255,255,0.2)", borderRadius: 20, padding: "2px 8px" }}>
-            <span style={{ fontSize: 11, color: "#fff", fontWeight: 600 }}>🕐 {module.timeSlot}</span>
+          <div style={{ fontSize: 11, color: accent, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Module {module.moduleNumber}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginTop: 2 }}>{module.title}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+            <span style={{ fontSize: 12, color: "#64748b" }}>{module.duration} hrs/day</span>
+            <span style={{ fontSize: 12, color: "#64748b" }}>•</span>
+            <span style={{ fontSize: 12, color: "#64748b" }}>{module.timeSlot}</span>
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
           <button onClick={e => { e.stopPropagation(); onEdit(module); }}
-            style={{ background: "rgba(255,255,255,0.25)", border: "none", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#fff" }}>
-            ✏️ Edit
+            style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#475569" }}>
+            Edit
           </button>
-          <span style={{ color: "#fff", fontSize: 18 }}>{expanded ? "▲" : "▼"}</span>
+          <span style={{ color: "#94a3b8", fontSize: 14 }}>{expanded ? "▲" : "▼"}</span>
         </div>
       </div>
       {expanded && (
-        <div style={{ marginTop: 8 }}>
+        <div style={{ padding: "0 18px 16px 18px" }}>
           {module.days.map((day, index) => (
             <div id={`module${module.id}-day-${index}`} key={index}
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, marginBottom: 4, background: highlightedDay === index ? "#fff7ed" : "#fafafa", border: highlightedDay === index ? `2px solid ${from}` : "2px solid transparent" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: from, borderRadius: 6, padding: "2px 6px", whiteSpace: "nowrap" }}>DAY {index + 1}</span>
-              <span style={{ fontSize: 11, color: "#9ca3af", whiteSpace: "nowrap" }}>{day.date}</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#1f2937", flex: 1 }}>{day.topic}</span>
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, marginBottom: 4, background: highlightedDay === index ? module.color.soft : "#f8fafc", border: highlightedDay === index ? `1px solid ${accent}55` : "1px solid transparent" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: accent, background: module.color.soft, borderRadius: 6, padding: "3px 7px", whiteSpace: "nowrap" }}>DAY {index + 1}</span>
+              <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>{day.date}</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: "#334155", flex: 1 }}>{day.topic}</span>
             </div>
           ))}
         </div>
@@ -227,13 +227,13 @@ function ModuleCard({ module, highlightedDay, expanded, onExpand, onClose, onEdi
 
 function SlotPopup({ message, onClose }) {
   return (
-    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
-      <div style={{ background: "#fff", borderRadius: 20, padding: 32, maxWidth: 400, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.2)", textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-        <p style={{ fontSize: 15, color: "#1f2937", fontWeight: 600, lineHeight: 1.6, marginBottom: 24 }}>{message}</p>
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
+      <div style={{ background: "#fff", borderRadius: 14, padding: 28, maxWidth: 400, width: "90%", boxShadow: "0 10px 40px rgba(0,0,0,0.15)", textAlign: "center" }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+        <p style={{ fontSize: 14, color: "#1e293b", fontWeight: 500, lineHeight: 1.6, marginBottom: 20 }}>{message}</p>
         <button onClick={onClose}
-          style={{ background: "linear-gradient(90deg, #f97316, #ec4899)", border: "none", borderRadius: 12, padding: "12px 32px", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#fff" }}>
-          OK, Got It
+          style={{ background: "#0a66ff", border: "none", borderRadius: 8, padding: "10px 28px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#fff" }}>
+          Got it
         </button>
       </div>
     </div>
@@ -252,15 +252,6 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
     topics: editingModule?.days.map(d => d.topic).join("\n") || "",
   });
   const [slotError, setSlotError] = useState("");
-
-  const colors = [
-    { from: "#f97316", to: "#ec4899" },
-    { from: "#10b981", to: "#0ea5e9" },
-    { from: "#8b5cf6", to: "#ec4899" },
-    { from: "#f43f5e", to: "#f97316" },
-    { from: "#0ea5e9", to: "#6366f1" },
-    { from: "#14b8a6", to: "#84cc16" },
-  ];
 
   const handleHoursChange = (val) => {
     const hrs = parseInt(val);
@@ -319,26 +310,27 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
       duration: form.hoursPerDay,
       startDate: form.startDate,
       endDate: form.endDate,
-      color: isEditing ? editingModule.color : colors[(moduleNumber - 1) % colors.length],
+      color: isEditing ? editingModule.color : PALETTE[(moduleNumber - 1) % PALETTE.length],
       days,
     });
     onClose();
   };
 
-  const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e5e7eb", fontSize: 14, outline: "none", boxSizing: "border-box", marginTop: 4 };
-  const labelStyle = { fontSize: 13, fontWeight: 600, color: "#374151" };
+  const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", boxSizing: "border-box", marginTop: 4, color: "#1e293b" };
+  const labelStyle = { fontSize: 13, fontWeight: 600, color: "#334155" };
   const hrs = parseInt(form.hoursPerDay);
 
   return (
     <>
       {slotError && <SlotPopup message={slotError} onClose={() => setSlotError("")} />}
-      <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-        <div style={{ background: "#fff", borderRadius: 20, padding: 32, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1f2937" }}>{isEditing ? "Edit Module" : "Add New Module"}</h2>
-            <button onClick={onClose} style={{ background: "#f3f4f6", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 18 }}>✕</button>
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+        <div style={{ background: "#fff", borderRadius: 14, padding: 28, width: "100%", maxWidth: 460, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 10px 40px rgba(0,0,0,0.15)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{isEditing ? "Edit Module" : "Add New Module"}</h2>
+            <button onClick={onClose} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 14, color: "#64748b" }}>✕</button>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
               <label style={labelStyle}>Module Name *</label>
               <input style={inputStyle} placeholder="e.g. Data Engineering" value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
@@ -348,21 +340,21 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
               <input style={inputStyle} placeholder="e.g. 4 or 8" type="number" value={form.hoursPerDay} onChange={e => handleHoursChange(e.target.value)} />
             </div>
             {hrs >= 8 && (
-              <div style={{ background: "#f0fdf4", borderRadius: 10, padding: "10px 14px", border: "1.5px solid #10b981" }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#10b981" }}>✓ Time Slot: 9:00 AM – 6:00 PM (auto)</span>
+              <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "9px 12px", border: "1px solid #bbf7d0" }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#059669" }}>✓ Time Slot: 9:00 AM – 6:00 PM (auto)</span>
               </div>
             )}
             {hrs > 0 && hrs < 8 && (
               <div>
-                <label style={labelStyle}>Time Slot * <span style={{ fontWeight: 400, color: "#6b7280", fontSize: 12 }}>(e.g. 9:00 AM – 1:00 PM)</span></label>
-                <div style={{ display: "flex", gap: 10, marginTop: 6, marginBottom: 8 }}>
+                <label style={labelStyle}>Time Slot * <span style={{ fontWeight: 400, color: "#94a3b8", fontSize: 11 }}>(e.g. 9:00 AM – 1:00 PM)</span></label>
+                <div style={{ display: "flex", gap: 8, marginTop: 6, marginBottom: 8 }}>
                   <button onClick={() => handleSlotChoice("morning")}
-                    style={{ flex: 1, padding: "10px", borderRadius: 10, border: form.slotChoice === "morning" ? "2px solid #f97316" : "1.5px solid #e5e7eb", background: form.slotChoice === "morning" ? "#fff7ed" : "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: form.slotChoice === "morning" ? "#f97316" : "#374151" }}>
-                    Morning<br /><span style={{ fontSize: 11, fontWeight: 400 }}>9:00 AM – 1:00 PM</span>
+                    style={{ flex: 1, padding: "9px", borderRadius: 8, border: form.slotChoice === "morning" ? "1.5px solid #0a66ff" : "1px solid #e2e8f0", background: form.slotChoice === "morning" ? "#eaf1ff" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: form.slotChoice === "morning" ? "#0a66ff" : "#475569" }}>
+                    Morning<br /><span style={{ fontSize: 10, fontWeight: 400 }}>9:00 AM – 1:00 PM</span>
                   </button>
                   <button onClick={() => handleSlotChoice("evening")}
-                    style={{ flex: 1, padding: "10px", borderRadius: 10, border: form.slotChoice === "evening" ? "2px solid #10b981" : "1.5px solid #e5e7eb", background: form.slotChoice === "evening" ? "#f0fdf4" : "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: form.slotChoice === "evening" ? "#10b981" : "#374151" }}>
-                    Evening<br /><span style={{ fontSize: 11, fontWeight: 400 }}>1:30 PM – 5:30 PM</span>
+                    style={{ flex: 1, padding: "9px", borderRadius: 8, border: form.slotChoice === "evening" ? "1.5px solid #059669" : "1px solid #e2e8f0", background: form.slotChoice === "evening" ? "#e7f8f0" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: form.slotChoice === "evening" ? "#059669" : "#475569" }}>
+                    Evening<br /><span style={{ fontSize: 10, fontWeight: 400 }}>1:30 PM – 5:30 PM</span>
                   </button>
                 </div>
                 <input style={inputStyle} placeholder="Or type custom time: e.g. 9:00 AM – 12:00 PM"
@@ -370,7 +362,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
                   onChange={e => setForm({...form, timeSlot: e.target.value, slotChoice: ""})} />
               </div>
             )}
-            <div style={{ display: "flex", gap: 12 }}>
+            <div style={{ display: "flex", gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Start Date *</label>
                 <input style={inputStyle} type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
@@ -382,15 +374,16 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
             </div>
             <div>
               <label style={labelStyle}>Topics (one topic per line)</label>
-              <textarea style={{ ...inputStyle, minHeight: 100, resize: "vertical" }}
+              <textarea style={{ ...inputStyle, minHeight: 90, resize: "vertical" }}
                 placeholder={"Topic 1\nTopic 2\nTopic 3"}
                 value={form.topics}
                 onChange={e => setForm({...form, topics: e.target.value})} />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-            <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 12, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#6b7280" }}>Cancel</button>
-            <button onClick={handleSubmit} style={{ flex: 1, padding: "12px", borderRadius: 12, border: "none", background: "linear-gradient(90deg, #f97316, #ec4899)", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#fff" }}>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+            <button onClick={onClose} style={{ flex: 1, padding: "11px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#64748b" }}>Cancel</button>
+            <button onClick={handleSubmit} style={{ flex: 1, padding: "11px", borderRadius: 8, border: "none", background: "#0a66ff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#fff" }}>
               {isEditing ? "Save Changes" : "Add Module"}
             </button>
           </div>
@@ -405,7 +398,7 @@ export default function App() {
     {
       id: 1, moduleNumber: 1, title: "Data Engineering", timeSlot: "9:00 AM – 1:00 PM", duration: "4",
       startDate: "2026-06-01", endDate: "2026-06-09",
-      color: { from: "#f97316", to: "#ec4899" },
+      color: PALETTE[0],
       days: [
         { date: "1 JUN", calDay: 1, calMonth: 5, calYear: 2026, topic: "Data Engineering 101" },
         { date: "2 JUN", calDay: 2, calMonth: 5, calYear: 2026, topic: "Introduction to Data Engineering" },
@@ -420,7 +413,7 @@ export default function App() {
     {
       id: 2, moduleNumber: 2, title: "Machine Learning", timeSlot: "1:30 PM – 5:30 PM", duration: "4",
       startDate: "2026-06-01", endDate: "2026-06-09",
-      color: { from: "#10b981", to: "#0ea5e9" },
+      color: PALETTE[1],
       days: [
         { date: "1 JUN", calDay: 1, calMonth: 5, calYear: 2026, topic: "Introduction to ML" },
         { date: "2 JUN", calDay: 2, calMonth: 5, calYear: 2026, topic: "Supervised Learning" },
@@ -461,24 +454,24 @@ export default function App() {
   };
 
   const handleDateClick = (day, month, year) => {
-  const isSameDate = selectedDate && selectedDate.day === day && selectedDate.month === month && selectedDate.year === year;
-  if (isSameDate) {
-    setSelectedDate(null);
-    setHighlightedDays({});
-    setExpandedModules({});
-    setCalendarCollapsed(false);
-    return;
-  }
-  setSelectedDate({ day, month, year });
-  setCalendarCollapsed(true);
-  const newHighlights = {}, newExpanded = {};
-  modules.forEach(mod => {
-    const idx = mod.days.findIndex(d => d.calDay === day && d.calMonth === month && d.calYear === year);
-    newHighlights[mod.id] = idx >= 0 ? idx : null;
-    newExpanded[mod.id] = idx >= 0;
-  });
-  setHighlightedDays(newHighlights);
-  setExpandedModules(newExpanded);
+    const isSameDate = selectedDate && selectedDate.day === day && selectedDate.month === month && selectedDate.year === year;
+    if (isSameDate) {
+      setSelectedDate(null);
+      setHighlightedDays({});
+      setExpandedModules({});
+      setCalendarCollapsed(false);
+      return;
+    }
+    setSelectedDate({ day, month, year });
+    setCalendarCollapsed(true);
+    const newHighlights = {}, newExpanded = {};
+    modules.forEach(mod => {
+      const idx = mod.days.findIndex(d => d.calDay === day && d.calMonth === month && d.calYear === year);
+      newHighlights[mod.id] = idx >= 0 ? idx : null;
+      newExpanded[mod.id] = idx >= 0;
+    });
+    setHighlightedDays(newHighlights);
+    setExpandedModules(newExpanded);
   };
 
   const openAddForm = () => { setEditingModule(null); setShowForm(true); };
@@ -486,32 +479,39 @@ export default function App() {
   const closeForm = () => { setShowForm(false); setEditingModule(null); };
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "32px 24px", fontFamily: "Segoe UI, sans-serif" }}>
-      <h1 style={{ textAlign: "center", color: "#fff", fontSize: 32, fontWeight: 800, marginBottom: 4 }}>📚 Course Dashboard</h1>
-      <p style={{ textAlign: "center", color: "rgba(255,255,255,0.75)", fontSize: 14, marginBottom: 24 }}>
-        {modules.length} Module{modules.length !== 1 ? "s" : ""}
-      </p>
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-        <button onClick={openAddForm}
-          style={{ background: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", cursor: "pointer", fontSize: 15, fontWeight: 700, color: "#f97316", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-          + Add New Module
-        </button>
-      </div>
-      <div style={{ display: "flex", gap: 20, maxWidth: 1400, margin: "0 auto", alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div style={{ flex: calendarCollapsed ? "0 0 200px" : "0 0 320px", transition: "flex 0.3s" }}>
-          <Calendar onDateClick={handleDateClick} selectedDate={selectedDate} collapsed={calendarCollapsed} modules={modules} />
+    <div style={{ minHeight: "100vh", background: "#f8fafc", padding: "40px 24px", fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ color: "#0f172a", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Course Dashboard</h1>
+          <p style={{ color: "#64748b", fontSize: 14, margin: 0 }}>
+            {modules.length} module{modules.length !== 1 ? "s" : ""} scheduled
+          </p>
         </div>
-        <div style={{ flex: 1, display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-          {modules.map(mod => (
-            <ModuleCard key={mod.id} module={mod}
-              highlightedDay={highlightedDays[mod.id]}
-              expanded={expandedModules[mod.id] || false}
-              onExpand={handleExpand}
-              onClose={handleClose}
-              onEdit={openEditForm} />
-          ))}
+
+        <div style={{ marginBottom: 24 }}>
+          <button onClick={openAddForm}
+            style={{ background: "#0a66ff", border: "none", borderRadius: 8, padding: "11px 22px", cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#fff" }}>
+            + Add New Module
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <div style={{ flex: calendarCollapsed ? "0 0 200px" : "0 0 320px", transition: "flex 0.3s" }}>
+            <Calendar onDateClick={handleDateClick} selectedDate={selectedDate} collapsed={calendarCollapsed} modules={modules} />
+          </div>
+          <div style={{ flex: 1, display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+            {modules.map(mod => (
+              <ModuleCard key={mod.id} module={mod}
+                highlightedDay={highlightedDays[mod.id]}
+                expanded={expandedModules[mod.id] || false}
+                onExpand={handleExpand}
+                onClose={handleClose}
+                onEdit={openEditForm} />
+            ))}
+          </div>
         </div>
       </div>
+
       {showForm && (
         <ModuleForm
           onSave={handleSaveModule}
