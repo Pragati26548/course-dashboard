@@ -395,7 +395,7 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [editingModule, setEditingModule] = useState(null);
 
-  // Backend se data fetch karo
+  
   useEffect(() => {
     fetch("http://localhost:8080/api/modules")
       .then(res => res.json())
@@ -470,6 +470,12 @@ export default function App() {
           <p style={{ color: "#64748b", fontSize: 14, margin: 0 }}>
             {modules.length} module{modules.length !== 1 ? "s" : ""} scheduled
           </p>
+          <button onClick={() => {
+          localStorage.removeItem("token");
+          window.location.reload();
+          }} style={{ background: "#ef4444", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#fff", marginTop: 8 }}>
+          Logout
+          </button>
         </div>
 
         <div style={{ marginBottom: 24 }}>
