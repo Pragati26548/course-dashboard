@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Login from "./Login";
 
 const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -87,14 +88,13 @@ function generateDays(startDate, endDate, topicsText) {
   return days;
 }
 
-// ---- Professional, minimal color palette (Calendly-inspired) ----
 const PALETTE = [
-  { accent: "#0a66ff", soft: "#eaf1ff" }, // blue
-  { accent: "#0d9488", soft: "#e6f7f5" }, // teal
-  { accent: "#7c3aed", soft: "#f1ebfd" }, // violet
-  { accent: "#dc2626", soft: "#fdecec" }, // red
-  { accent: "#ca8a04", soft: "#fdf6e3" }, // amber
-  { accent: "#059669", soft: "#e7f8f0" }, // green
+  { accent: "#0a66ff", soft: "#eaf1ff" },
+  { accent: "#0d9488", soft: "#e6f7f5" },
+  { accent: "#7c3aed", soft: "#f1ebfd" },
+  { accent: "#dc2626", soft: "#fdecec" },
+  { accent: "#ca8a04", soft: "#fdf6e3" },
+  { accent: "#059669", soft: "#e7f8f0" },
 ];
 
 function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
@@ -140,23 +140,15 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
           const dayModules = getModulesForDay(day);
           const isClassday = dayModules.length > 0;
           const isSelected = selectedDate && selectedDate.day === day && selectedDate.month === month && selectedDate.year === year;
-          const firstAccent = dayModules[0]?.color?.accent || "#0a66ff";
+          const firstAccent = dayModules[0]?.colorAccent || "#0a66ff";
 
           let bg = "transparent";
           let textColor = isSunday(day, month, year) ? "#cbd5e1" : "#334155";
           let cursor = "default";
 
-          if (isSelected) {
-            bg = "#1e293b";
-            textColor = "#fff";
-            cursor = "pointer";
-          } else if (isToday) {
-            bg = "#1e293b";
-            textColor = "#fff";
-          } else if (isClassday) {
-            textColor = firstAccent;
-            cursor = "pointer";
-          }
+          if (isSelected) { bg = "#1e293b"; textColor = "#fff"; cursor = "pointer"; }
+          else if (isToday) { bg = "#1e293b"; textColor = "#fff"; }
+          else if (isClassday) { textColor = firstAccent; cursor = "pointer"; }
 
           return (
             <div key={i} onClick={() => isClassday && onDateClick(day, month, year)}
@@ -176,7 +168,7 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
             return false;
           }).map(mod => (
             <div key={mod.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: mod.color.accent }}></div>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: mod.colorAccent || "#0a66ff" }}></div>
               <span style={{ fontSize: 12, color: "#64748b" }}>{mod.title}</span>
             </div>
           ))}
@@ -187,7 +179,8 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
 }
 
 function ModuleCard({ module, highlightedDay, expanded, onExpand, onClose, onEdit }) {
-  const { accent } = module.color;
+  const accent = module.colorAccent || "#0a66ff";
+  const soft = module.colorSoft || "#eaf1ff";
   return (
     <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", flex: "1 1 300px", overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", padding: "16px 18px", borderLeft: `3px solid ${accent}` }}
@@ -211,10 +204,10 @@ function ModuleCard({ module, highlightedDay, expanded, onExpand, onClose, onEdi
       </div>
       {expanded && (
         <div style={{ padding: "0 18px 16px 18px" }}>
-          {module.days.map((day, index) => (
+          {(module.days || []).map((day, index) => (
             <div id={`module${module.id}-day-${index}`} key={index}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, marginBottom: 4, background: highlightedDay === index ? module.color.soft : "#f8fafc", border: highlightedDay === index ? `1px solid ${accent}55` : "1px solid transparent" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: accent, background: module.color.soft, borderRadius: 6, padding: "3px 7px", whiteSpace: "nowrap" }}>DAY {index + 1}</span>
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, marginBottom: 4, background: highlightedDay === index ? soft : "#f8fafc", border: highlightedDay === index ? `1px solid ${accent}55` : "1px solid transparent" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: accent, background: soft, borderRadius: 6, padding: "3px 7px", whiteSpace: "nowrap" }}>DAY {index + 1}</span>
               <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>{day.date}</span>
               <span style={{ fontSize: 13, fontWeight: 500, color: "#334155", flex: 1 }}>{day.topic}</span>
             </div>
@@ -249,7 +242,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
     slotChoice: "",
     startDate: editingModule?.startDate || "",
     endDate: editingModule?.endDate || "",
-    topics: editingModule?.days.map(d => d.topic).join("\n") || "",
+    topics: editingModule?.days?.map(d => d.topic).join("\n") || "",
   });
   const [slotError, setSlotError] = useState("");
 
@@ -267,7 +260,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
     setForm(prev => ({ ...prev, slotChoice: choice, timeSlot: slot }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.title || !form.hoursPerDay || !form.timeSlot || !form.startDate || !form.endDate) {
       alert("Please fill in all required fields!");
       return;
@@ -279,40 +272,39 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
       );
       const newSlotType = getSlotType(form.timeSlot, form.hoursPerDay);
       if (morningTaken && eveningTaken) {
-        setSlotError("Both morning and evening slots are already full for the selected date range. Please choose different dates.");
+        setSlotError("Both morning and evening slots are already full for the selected date range.");
         return;
       }
       if (newSlotType === "fullday" && (morningTaken || eveningTaken)) {
-        const takenSlot = morningTaken ? "morning" : "evening";
-        setSlotError(`Cannot add a full-day module. The ${takenSlot} slot is already taken for this date range.`);
+        setSlotError(`Cannot add a full-day module. A slot is already taken.`);
         return;
       }
       if (newSlotType === "morning" && morningTaken) {
-        setSlotError(!eveningTaken
-          ? "Morning slot is already taken for this date range. However, Evening slot is available! Please select a time after 12:00 PM."
-          : "Morning slot is already taken and Evening slot is also full. Please choose different dates.");
+        setSlotError(!eveningTaken ? "Morning slot taken. Evening slot is available!" : "Both slots full.");
         return;
       }
       if (newSlotType === "evening" && eveningTaken) {
-        setSlotError(!morningTaken
-          ? "Evening slot is already taken for this date range. However, Morning slot is available! Please select a time before 12:00 PM."
-          : "Evening slot is already taken and Morning slot is also full. Please choose different dates.");
+        setSlotError(!morningTaken ? "Evening slot taken. Morning slot is available!" : "Both slots full.");
         return;
       }
     }
     const days = generateDays(form.startDate, form.endDate, form.topics);
     const moduleNumber = isEditing ? editingModule.moduleNumber : nextModuleNumber;
-    onSave({
-      id: isEditing ? editingModule.id : Date.now(),
+    const palette = PALETTE[(moduleNumber - 1) % PALETTE.length];
+
+    const moduleData = {
       moduleNumber,
       title: form.title,
       timeSlot: form.timeSlot,
       duration: form.hoursPerDay,
       startDate: form.startDate,
       endDate: form.endDate,
-      color: isEditing ? editingModule.color : PALETTE[(moduleNumber - 1) % PALETTE.length],
+      colorAccent: palette.accent,
+      colorSoft: palette.soft,
       days,
-    });
+    };
+
+    await onSave(moduleData, isEditing ? editingModule.id : null);
     onClose();
   };
 
@@ -346,7 +338,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
             )}
             {hrs > 0 && hrs < 8 && (
               <div>
-                <label style={labelStyle}>Time Slot * <span style={{ fontWeight: 400, color: "#94a3b8", fontSize: 11 }}>(e.g. 9:00 AM – 1:00 PM)</span></label>
+                <label style={labelStyle}>Time Slot *</label>
                 <div style={{ display: "flex", gap: 8, marginTop: 6, marginBottom: 8 }}>
                   <button onClick={() => handleSlotChoice("morning")}
                     style={{ flex: 1, padding: "9px", borderRadius: 8, border: form.slotChoice === "morning" ? "1.5px solid #0a66ff" : "1px solid #e2e8f0", background: form.slotChoice === "morning" ? "#eaf1ff" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: form.slotChoice === "morning" ? "#0a66ff" : "#475569" }}>
@@ -357,7 +349,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
                     Evening<br /><span style={{ fontSize: 10, fontWeight: 400 }}>1:30 PM – 5:30 PM</span>
                   </button>
                 </div>
-                <input style={inputStyle} placeholder="Or type custom time: e.g. 9:00 AM – 12:00 PM"
+                <input style={inputStyle} placeholder="Or type custom time"
                   value={form.timeSlot}
                   onChange={e => setForm({...form, timeSlot: e.target.value, slotChoice: ""})} />
               </div>
@@ -373,7 +365,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
               </div>
             </div>
             <div>
-              <label style={labelStyle}>Topics (one topic per line)</label>
+              <label style={labelStyle}>Topics (one per line)</label>
               <textarea style={{ ...inputStyle, minHeight: 90, resize: "vertical" }}
                 placeholder={"Topic 1\nTopic 2\nTopic 3"}
                 value={form.topics}
@@ -394,52 +386,41 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
 }
 
 export default function App() {
-  const [modules, setModules] = useState([
-    {
-      id: 1, moduleNumber: 1, title: "Data Engineering", timeSlot: "9:00 AM – 1:00 PM", duration: "4",
-      startDate: "2026-06-01", endDate: "2026-06-09",
-      color: PALETTE[0],
-      days: [
-        { date: "1 JUN", calDay: 1, calMonth: 5, calYear: 2026, topic: "Data Engineering 101" },
-        { date: "2 JUN", calDay: 2, calMonth: 5, calYear: 2026, topic: "Introduction to Data Engineering" },
-        { date: "3 JUN", calDay: 3, calMonth: 5, calYear: 2026, topic: "Writing Efficient Queries: Part 1" },
-        { date: "4 JUN", calDay: 4, calMonth: 5, calYear: 2026, topic: "Writing Efficient Queries: Part 2" },
-        { date: "5 JUN", calDay: 5, calMonth: 5, calYear: 2026, topic: "Intro to Hadoop" },
-        { date: "6 JUN", calDay: 6, calMonth: 5, calYear: 2026, topic: "HDFS and MAP-REDUCE" },
-        { date: "8 JUN", calDay: 8, calMonth: 5, calYear: 2026, topic: "Introduction to Hive" },
-        { date: "9 JUN", calDay: 9, calMonth: 5, calYear: 2026, topic: "Advanced features of Hive" },
-      ],
-    },
-    {
-      id: 2, moduleNumber: 2, title: "Machine Learning", timeSlot: "1:30 PM – 5:30 PM", duration: "4",
-      startDate: "2026-06-01", endDate: "2026-06-09",
-      color: PALETTE[1],
-      days: [
-        { date: "1 JUN", calDay: 1, calMonth: 5, calYear: 2026, topic: "Introduction to ML" },
-        { date: "2 JUN", calDay: 2, calMonth: 5, calYear: 2026, topic: "Supervised Learning" },
-        { date: "3 JUN", calDay: 3, calMonth: 5, calYear: 2026, topic: "Linear Regression" },
-        { date: "4 JUN", calDay: 4, calMonth: 5, calYear: 2026, topic: "Logistic Regression" },
-        { date: "5 JUN", calDay: 5, calMonth: 5, calYear: 2026, topic: "Decision Trees" },
-        { date: "6 JUN", calDay: 6, calMonth: 5, calYear: 2026, topic: "Random Forest" },
-        { date: "8 JUN", calDay: 8, calMonth: 5, calYear: 2026, topic: "Model Evaluation" },
-        { date: "9 JUN", calDay: 9, calMonth: 5, calYear: 2026, topic: "Feature Engineering" },
-      ],
-    },
-  ]);
-
+  const [modules, setModules] = useState([]);
   const [expandedModules, setExpandedModules] = useState({});
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
   const [highlightedDays, setHighlightedDays] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingModule, setEditingModule] = useState(null);
 
-  const handleSaveModule = (moduleData) => {
-    setModules(prev => {
-      const exists = prev.find(m => m.id === moduleData.id);
-      if (exists) return prev.map(m => m.id === moduleData.id ? moduleData : m);
-      return [...prev, moduleData];
-    });
+  // Backend se data fetch karo
+  useEffect(() => {
+    fetch("http://localhost:8080/api/modules")
+      .then(res => res.json())
+      .then(data => setModules(data))
+      .catch(err => console.error("Error:", err));
+  }, []);
+
+  const handleSaveModule = async (moduleData, editingId) => {
+    if (editingId) {
+      const res = await fetch(`http://localhost:8080/api/modules/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(moduleData),
+      });
+      const updated = await res.json();
+      setModules(prev => prev.map(m => m.id === updated.id ? updated : m));
+    } else {
+      const res = await fetch("http://localhost:8080/api/modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(moduleData),
+      });
+      const created = await res.json();
+      setModules(prev => [...prev, created]);
+    }
   };
 
   const handleExpand = (id) => setExpandedModules(prev => ({ ...prev, [id]: true }));
@@ -466,7 +447,7 @@ export default function App() {
     setCalendarCollapsed(true);
     const newHighlights = {}, newExpanded = {};
     modules.forEach(mod => {
-      const idx = mod.days.findIndex(d => d.calDay === day && d.calMonth === month && d.calYear === year);
+      const idx = (mod.days || []).findIndex(d => d.calDay === day && d.calMonth === month && d.calYear === year);
       newHighlights[mod.id] = idx >= 0 ? idx : null;
       newExpanded[mod.id] = idx >= 0;
     });
@@ -477,6 +458,9 @@ export default function App() {
   const openAddForm = () => { setEditingModule(null); setShowForm(true); };
   const openEditForm = (mod) => { setEditingModule(mod); setShowForm(true); };
   const closeForm = () => { setShowForm(false); setEditingModule(null); };
+  if (!isLoggedIn) {
+  return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", padding: "40px 24px", fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
