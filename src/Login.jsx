@@ -1,8 +1,9 @@
 import { useState } from "react";
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onShowSignup }) {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!form.username || !form.password) {
@@ -49,20 +50,30 @@ export default function Login({ onLogin }) {
           />
         </div>
 
-        <div style={{ marginBottom: 22 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>Password</label>
-          <input
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", boxSizing: "border-box", marginTop: 4 }}
-            type="password"
-            placeholder="Enter password"
-            value={form.password}
-            onChange={e => setForm({ ...form, password: e.target.value })}
-          />
-        </div>
+      <div style={{ marginBottom: 22 }}>
+  <label style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>Password</label>
+  <div style={{ position: "relative", marginTop: 4 }}>
+    <input
+      style={{ width: "100%", padding: "10px 12px", paddingRight: "40px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", boxSizing: "border-box", color: "#1e293b" }}
+      type={showPassword ? "text" : "password"}
+      placeholder="Enter password"
+      value={form.password}
+      onChange={e => setForm({ ...form, password: e.target.value })}
+    />
+    <span onClick={() => setShowPassword(!showPassword)}
+      style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", cursor: "pointer", fontSize: 16 }}>
+      {"👁️"}
+    </span>
+  </div>
+  </div>
 
         <button onClick={handleLogin}
           style={{ width: "100%", padding: "12px", borderRadius: 8, border: "none", background: "#0a66ff", cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#fff" }}>
           Login
+        </button>
+        <button onClick={onShowSignup}
+        style={{ width: "100%", padding: "12px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#64748b", marginTop: 8 }}>
+        Create New Account
         </button>
       </div>
     </div>

@@ -1,7 +1,21 @@
 import { useState, useEffect } from "react";
 import Login from "./Login";
+import Signup from "./Signup";
 
 const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const PALETTE = [
+  { accent: "#0a66ff", soft: "#eaf1ff" },
+  { accent: "#0d9488", soft: "#e6f7f5" },
+  { accent: "#7c3aed", soft: "#f1ebfd" },
+  { accent: "#dc2626", soft: "#fdecec" },
+  { accent: "#ca8a04", soft: "#fdf6e3" },
+  { accent: "#059669", soft: "#e7f8f0" },
+];
+
+function getColor(index) {
+  return PALETTE[index % PALETTE.length];
+}
 
 function isSunday(day, month, year) {
   return new Date(year, month, day).getDay() === 0;
@@ -88,18 +102,9 @@ function generateDays(startDate, endDate, topicsText) {
   return days;
 }
 
-const PALETTE = [
-  { accent: "#0a66ff", soft: "#eaf1ff" },
-  { accent: "#0d9488", soft: "#e6f7f5" },
-  { accent: "#7c3aed", soft: "#f1ebfd" },
-  { accent: "#dc2626", soft: "#fdecec" },
-  { accent: "#ca8a04", soft: "#fdf6e3" },
-  { accent: "#059669", soft: "#e7f8f0" },
-];
-
 function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
   const today = new Date();
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1));
+  const [currentDate, setCurrentDate] = useState(new Date());
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const monthName = currentDate.toLocaleString("default", { month: "long" });
@@ -140,7 +145,7 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
           const dayModules = getModulesForDay(day);
           const isClassday = dayModules.length > 0;
           const isSelected = selectedDate && selectedDate.day === day && selectedDate.month === month && selectedDate.year === year;
-          const firstAccent = dayModules[0]?.colorAccent || "#0a66ff";
+          const firstColor = dayModules[0]?.color?.accent || "#0a66ff";
 
           let bg = "transparent";
           let textColor = isSunday(day, month, year) ? "#cbd5e1" : "#334155";
@@ -148,7 +153,7 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
 
           if (isSelected) { bg = "#1e293b"; textColor = "#fff"; cursor = "pointer"; }
           else if (isToday) { bg = "#1e293b"; textColor = "#fff"; }
-          else if (isClassday) { textColor = firstAccent; cursor = "pointer"; }
+          else if (isClassday) { textColor = firstColor; cursor = "pointer"; }
 
           return (
             <div key={i} onClick={() => isClassday && onDateClick(day, month, year)}
@@ -168,7 +173,7 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
             return false;
           }).map(mod => (
             <div key={mod.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: mod.colorAccent || "#0a66ff" }}></div>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: mod.color?.accent || "#0a66ff" }}></div>
               <span style={{ fontSize: 12, color: "#64748b" }}>{mod.title}</span>
             </div>
           ))}
@@ -179,8 +184,8 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
 }
 
 function ModuleCard({ module, highlightedDay, expanded, onExpand, onClose, onEdit }) {
-  const accent = module.colorAccent || "#0a66ff";
-  const soft = module.colorSoft || "#eaf1ff";
+  const accent = module.color?.accent || "#0a66ff";
+  const soft = module.color?.soft || "#eaf1ff";
   return (
     <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", flex: "1 1 300px", overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", padding: "16px 18px", borderLeft: `3px solid ${accent}` }}
@@ -290,7 +295,6 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
     }
     const days = generateDays(form.startDate, form.endDate, form.topics);
     const moduleNumber = isEditing ? editingModule.moduleNumber : nextModuleNumber;
-    const palette = PALETTE[(moduleNumber - 1) % PALETTE.length];
 
     const moduleData = {
       moduleNumber,
@@ -299,8 +303,6 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
       duration: form.hoursPerDay,
       startDate: form.startDate,
       endDate: form.endDate,
-      colorAccent: palette.accent,
-      colorSoft: palette.soft,
       days,
     };
 
@@ -387,39 +389,53 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
 
 export default function App() {
   const [modules, setModules] = useState([]);
-  const [expandedModules, setExpandedModules] = useState({});
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  const [showSignup, setShowSignup] = useState(false);
+  const [expandedModules, setExpandedModules] = useState({});
   const [highlightedDays, setHighlightedDays] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingModule, setEditingModule] = useState(null);
 
-  
   useEffect(() => {
-    fetch("http://localhost:8080/api/modules")
+    if (!isLoggedIn) return;
+    const token = localStorage.getItem("token");
+    fetch("http://localhost:8080/api/modules", {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
       .then(res => res.json())
-      .then(data => setModules(data))
+      .then(data => {
+        const colored = data.map((mod, index) => ({
+          ...mod,
+          color: getColor(index),
+        }));
+        setModules(colored);
+      })
       .catch(err => console.error("Error:", err));
-  }, []);
+  }, [isLoggedIn]);
 
   const handleSaveModule = async (moduleData, editingId) => {
+    const token = localStorage.getItem("token");
     if (editingId) {
       const res = await fetch(`http://localhost:8080/api/modules/${editingId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(moduleData),
       });
       const updated = await res.json();
-      setModules(prev => prev.map(m => m.id === updated.id ? updated : m));
+      setModules(prev => prev.map((m, index) => m.id === updated.id ? { ...updated, color: getColor(index) } : m));
     } else {
       const res = await fetch("http://localhost:8080/api/modules", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(moduleData),
       });
       const created = await res.json();
-      setModules(prev => [...prev, created]);
+      setModules(prev => {
+        const newModules = [...prev, { ...created, color: getColor(prev.length) }];
+        return newModules;
+      });
     }
   };
 
@@ -458,8 +474,12 @@ export default function App() {
   const openAddForm = () => { setEditingModule(null); setShowForm(true); };
   const openEditForm = (mod) => { setEditingModule(mod); setShowForm(true); };
   const closeForm = () => { setShowForm(false); setEditingModule(null); };
+
   if (!isLoggedIn) {
-  return <Login onLogin={() => setIsLoggedIn(true)} />;
+    if (showSignup) {
+      return <Signup onSignup={() => setShowSignup(false)} />;
+    }
+    return <Login onLogin={() => setIsLoggedIn(true)} onShowSignup={() => setShowSignup(true)} />;
   }
 
   return (
@@ -471,10 +491,10 @@ export default function App() {
             {modules.length} module{modules.length !== 1 ? "s" : ""} scheduled
           </p>
           <button onClick={() => {
-          localStorage.removeItem("token");
-          window.location.reload();
+            localStorage.removeItem("token");
+            window.location.reload();
           }} style={{ background: "#ef4444", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#fff", marginTop: 8 }}>
-          Logout
+            Logout
           </button>
         </div>
 
