@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Login from "./Login";
 import Signup from "./Signup";
+import jsPDF from "jspdf";
 
 const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -100,6 +101,74 @@ function generateDays(startDate, endDate, topicsText) {
     current.setDate(current.getDate() + 1);
   }
   return days;
+}
+
+function generatePDF(module) {
+  const doc = new jsPDF();
+
+  // Left - ACTS, C-DAC CINE
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "italic");
+  doc.text("ACTS, C-DAC CINE", 20, 15);
+
+  // Left - reference number
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("CINE/E&T/2025/D/CDAC/PGDAI(FEB'25-FD)/001/", 20, 22);
+
+  // Center - FACULTY HONORARIUM
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("FACULTY HONORARIUM", 105, 38, { align: "center" });
+
+  // Date - right side
+  const today = new Date();
+  const dd = String(today.getDate()).padStart(2, "0");
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const yyyy = today.getFullYear();
+  const dateStr = `${dd}/${mm}/${yyyy}`;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Date: ${dateStr}`, 190, 46, { align: "right" });
+
+  // Calculate total hours
+  const startD = new Date(module.startDate + "T00:00:00");
+  const endD = new Date(module.endDate + "T00:00:00");
+  let workingDays = 0;
+  let current = new Date(startD);
+  while (current <= endD) {
+    if (current.getDay() !== 0) workingDays++;
+    current.setDate(current.getDate() + 1);
+  }
+  const totalHours = workingDays * parseInt(module.duration);
+
+  // Table
+  const startY = 50;
+  const col1X = 20;
+  const col1W = 80;
+  const col2W = 100;
+  const rowH = 16;
+
+  const rows = [
+    ["Course & Batch", "PG-DAI Aug 2025"],
+    ["Module Name", module.title],
+    ["Mode of Conduct (Theory / Lab)", `Theory      No. of hours: ${totalHours} hour (${module.duration} hrs/day)`],
+    ["Schedule: From (date)", module.startDate],
+    ["To (date)", module.endDate],
+  ];
+
+  rows.forEach((row, i) => {
+    const y = startY + i * rowH;
+    doc.rect(col1X, y, col1W, rowH);
+    doc.rect(col1X + col1W, y, col2W, rowH);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(row[0], col1X + 2, y + 10);
+    doc.setFont("helvetica", "normal");
+    doc.text(row[1], col1X + col1W + 2, y + 10);
+  });
+
+  doc.save(`Honorarium_${module.title}_Module${module.moduleNumber}.pdf`);
 }
 
 function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
@@ -254,14 +323,14 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
   const handleHoursChange = (val) => {
     const hrs = parseInt(val);
     if (hrs >= 8) {
-      setForm(prev => ({ ...prev, hoursPerDay: val, timeSlot: "9:00 AM – 6:00 PM", slotChoice: "" }));
+      setForm(prev => ({ ...prev, hoursPerDay: val, timeSlot: "9:00 AM - 6:00 PM", slotChoice: "" }));
     } else {
       setForm(prev => ({ ...prev, hoursPerDay: val, timeSlot: "", slotChoice: "" }));
     }
   };
 
   const handleSlotChoice = (choice) => {
-    const slot = choice === "morning" ? "9:00 AM – 1:00 PM" : "1:30 PM – 5:30 PM";
+    const slot = choice === "morning" ? "9:00 AM - 1:00 PM" : "1:30 PM - 5:30 PM";
     setForm(prev => ({ ...prev, slotChoice: choice, timeSlot: slot }));
   };
 
@@ -281,7 +350,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
         return;
       }
       if (newSlotType === "fullday" && (morningTaken || eveningTaken)) {
-        setSlotError(`Cannot add a full-day module. A slot is already taken.`);
+        setSlotError("Cannot add a full-day module. A slot is already taken.");
         return;
       }
       if (newSlotType === "morning" && morningTaken) {
@@ -335,7 +404,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
             </div>
             {hrs >= 8 && (
               <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "9px 12px", border: "1px solid #bbf7d0" }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#059669" }}>✓ Time Slot: 9:00 AM – 6:00 PM (auto)</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#059669" }}>Time Slot: 9:00 AM - 6:00 PM (auto)</span>
               </div>
             )}
             {hrs > 0 && hrs < 8 && (
@@ -344,11 +413,11 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
                 <div style={{ display: "flex", gap: 8, marginTop: 6, marginBottom: 8 }}>
                   <button onClick={() => handleSlotChoice("morning")}
                     style={{ flex: 1, padding: "9px", borderRadius: 8, border: form.slotChoice === "morning" ? "1.5px solid #0a66ff" : "1px solid #e2e8f0", background: form.slotChoice === "morning" ? "#eaf1ff" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: form.slotChoice === "morning" ? "#0a66ff" : "#475569" }}>
-                    Morning<br /><span style={{ fontSize: 10, fontWeight: 400 }}>9:00 AM – 1:00 PM</span>
+                    Morning<br /><span style={{ fontSize: 10, fontWeight: 400 }}>9:00 AM - 1:00 PM</span>
                   </button>
                   <button onClick={() => handleSlotChoice("evening")}
                     style={{ flex: 1, padding: "9px", borderRadius: 8, border: form.slotChoice === "evening" ? "1.5px solid #059669" : "1px solid #e2e8f0", background: form.slotChoice === "evening" ? "#e7f8f0" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: form.slotChoice === "evening" ? "#059669" : "#475569" }}>
-                    Evening<br /><span style={{ fontSize: 10, fontWeight: 400 }}>1:30 PM – 5:30 PM</span>
+                    Evening<br /><span style={{ fontSize: 10, fontWeight: 400 }}>1:30 PM - 5:30 PM</span>
                   </button>
                 </div>
                 <input style={inputStyle} placeholder="Or type custom time"
@@ -436,6 +505,7 @@ export default function App() {
         const newModules = [...prev, { ...created, color: getColor(prev.length) }];
         return newModules;
       });
+      generatePDF(moduleData);
     }
   };
 
@@ -490,10 +560,8 @@ export default function App() {
           <p style={{ color: "#64748b", fontSize: 14, margin: 0 }}>
             {modules.length} module{modules.length !== 1 ? "s" : ""} scheduled
           </p>
-          <button onClick={() => {
-            localStorage.removeItem("token");
-            window.location.reload();
-          }} style={{ background: "#ef4444", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#fff", marginTop: 8 }}>
+          <button onClick={() => { localStorage.removeItem("token"); window.location.reload(); }}
+            style={{ background: "#ef4444", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#fff", marginTop: 8 }}>
             Logout
           </button>
         </div>
