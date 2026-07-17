@@ -103,72 +103,16 @@ function generateDays(startDate, endDate, topicsText) {
   return days;
 }
 
-function generatePDF(module) {
-  const doc = new jsPDF();
-
-  // Left - ACTS, C-DAC CINE
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "italic");
-  doc.text("ACTS, C-DAC CINE", 20, 15);
-
-  // Left - reference number
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text("CINE/E&T/2025/D/CDAC/PGDAI(FEB'25-FD)/001/", 20, 22);
-
-  // Center - FACULTY HONORARIUM
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("FACULTY HONORARIUM", 105, 38, { align: "center" });
-
-  // Date - right side
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2, "0");
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const yyyy = today.getFullYear();
-  const dateStr = `${dd}/${mm}/${yyyy}`;
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Date: ${dateStr}`, 190, 46, { align: "right" });
-
-  // Calculate total hours
-  const startD = new Date(module.startDate + "T00:00:00");
-  const endD = new Date(module.endDate + "T00:00:00");
+function calcWorkingDays(startDate, endDate) {
+  const startD = new Date(startDate + "T00:00:00");
+  const endD = new Date(endDate + "T00:00:00");
   let workingDays = 0;
   let current = new Date(startD);
   while (current <= endD) {
     if (current.getDay() !== 0) workingDays++;
     current.setDate(current.getDate() + 1);
   }
-  const totalHours = workingDays * parseInt(module.duration);
-
-  // Table
-  const startY = 50;
-  const col1X = 20;
-  const col1W = 80;
-  const col2W = 100;
-  const rowH = 16;
-
-  const rows = [
-    ["Course & Batch", "PG-DAI Aug 2025"],
-    ["Module Name", module.title],
-    ["Mode of Conduct (Theory / Lab)", `Theory      No. of hours: ${totalHours} hour (${module.duration} hrs/day)`],
-    ["Schedule: From (date)", module.startDate],
-    ["To (date)", module.endDate],
-  ];
-
-  rows.forEach((row, i) => {
-    const y = startY + i * rowH;
-    doc.rect(col1X, y, col1W, rowH);
-    doc.rect(col1X + col1W, y, col2W, rowH);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(row[0], col1X + 2, y + 10);
-    doc.setFont("helvetica", "normal");
-    doc.text(row[1], col1X + col1W + 2, y + 10);
-  });
-
-  doc.save(`Honorarium_${module.title}_Module${module.moduleNumber}.pdf`);
+  return workingDays;
 }
 
 function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
@@ -252,7 +196,7 @@ function Calendar({ onDateClick, selectedDate, collapsed, modules }) {
   );
 }
 
-function ModuleCard({ module, highlightedDay, expanded, onExpand, onClose, onEdit }) {
+function ModuleCard({ module, highlightedDay, expanded, onExpand, onClose, onEdit, onGenerateFormat }) {
   const accent = module.color?.accent || "#0a66ff";
   const soft = module.color?.soft || "#eaf1ff";
   return (
@@ -268,10 +212,14 @@ function ModuleCard({ module, highlightedDay, expanded, onExpand, onClose, onEdi
             <span style={{ fontSize: 12, color: "#64748b" }}>{module.timeSlot}</span>
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
           <button onClick={e => { e.stopPropagation(); onEdit(module); }}
             style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#475569" }}>
             Edit
+          </button>
+          <button onClick={e => { e.stopPropagation(); onGenerateFormat(module); }}
+            style={{ background: "#059669", border: "none", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#fff" }}>
+            Generate Format
           </button>
           <span style={{ color: "#94a3b8", fontSize: 14 }}>{expanded ? "▲" : "▼"}</span>
         </div>
@@ -302,6 +250,105 @@ function SlotPopup({ message, onClose }) {
           style={{ background: "#0a66ff", border: "none", borderRadius: 8, padding: "10px 28px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#fff" }}>
           Got it
         </button>
+      </div>
+    </div>
+  );
+}
+
+function FormatForm({ module, onClose }) {
+  const [form, setForm] = useState({
+    courseBatch: "PG-DAI Aug 2025",
+    date: new Date().toISOString().split("T")[0],
+  });
+
+  const handleGenerate = () => {
+    const doc = new jsPDF();
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.text("ACTS, C-DAC CINE", 20, 15);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("CINE/E&T/2025/D/CDAC/PGDAI(FEB'25-FD)/001/", 20, 22);
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("FACULTY HONORARIUM", 105, 38, { align: "center" });
+
+    const [yyyy, mm, dd] = form.date.split("-");
+    const dateStr = `${dd}/${mm}/${yyyy}`;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Date: ${dateStr}`, 190, 46, { align: "right" });
+
+    const workingDays = calcWorkingDays(module.startDate, module.endDate);
+    const totalHours = workingDays * parseInt(module.duration);
+
+    const startY = 50;
+    const col1X = 20;
+    const col1W = 80;
+    const col2W = 100;
+    const rowH = 16;
+
+    const rows = [
+      ["Course & Batch", form.courseBatch],
+      ["Module Name", module.title],
+      ["Mode of Conduct (Theory / Lab)", `Theory    No. of hours: ${totalHours} hour (${module.duration} hrs/day)`],
+      ["Schedule: From (date)", module.startDate],
+      ["To (date)", module.endDate],
+    ];
+
+    rows.forEach((row, i) => {
+      const y = startY + i * rowH;
+      doc.rect(col1X, y, col1W, rowH);
+      doc.rect(col1X + col1W, y, col2W, rowH);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(row[0], col1X + 2, y + 10);
+      doc.setFont("helvetica", "normal");
+      doc.text(row[1], col1X + col1W + 2, y + 10);
+    });
+
+    doc.save(`Honorarium_${module.title}_Module${module.moduleNumber}.pdf`);
+    onClose();
+  };
+
+  const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", boxSizing: "border-box", marginTop: 4, color: "#1e293b" };
+  const labelStyle = { fontSize: 13, fontWeight: 600, color: "#334155" };
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div style={{ background: "#fff", borderRadius: 14, padding: 28, width: "100%", maxWidth: 460, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1e293b" }}>Generate Faculty Honorarium</h2>
+          <button onClick={onClose} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 14, color: "#64748b" }}>✕</button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={labelStyle}>Course & Batch</label>
+            <input style={inputStyle} value={form.courseBatch} onChange={e => setForm({...form, courseBatch: e.target.value})} />
+          </div>
+          <div>
+            <label style={labelStyle}>Date</label>
+            <input style={inputStyle} type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
+          </div>
+          <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
+              <strong>Module:</strong> {module.title}<br/>
+              <strong>Duration:</strong> {module.duration} hrs/day<br/>
+              <strong>From:</strong> {module.startDate} &nbsp; <strong>To:</strong> {module.endDate}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "11px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#64748b" }}>Cancel</button>
+          <button onClick={handleGenerate} style={{ flex: 1, padding: "11px", borderRadius: 8, border: "none", background: "#059669", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#fff" }}>
+            Generate PDF
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -346,7 +393,7 @@ function ModuleForm({ onSave, onClose, nextModuleNumber, modules, editingModule 
       );
       const newSlotType = getSlotType(form.timeSlot, form.hoursPerDay);
       if (morningTaken && eveningTaken) {
-        setSlotError("Both morning and evening slots are already full for the selected date range.");
+        setSlotError("Both morning and evening slots are already full.");
         return;
       }
       if (newSlotType === "fullday" && (morningTaken || eveningTaken)) {
@@ -466,6 +513,7 @@ export default function App() {
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingModule, setEditingModule] = useState(null);
+  const [formatModule, setFormatModule] = useState(null);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -501,11 +549,7 @@ export default function App() {
         body: JSON.stringify(moduleData),
       });
       const created = await res.json();
-      setModules(prev => {
-        const newModules = [...prev, { ...created, color: getColor(prev.length) }];
-        return newModules;
-      });
-      generatePDF(moduleData);
+      setModules(prev => [...prev, { ...created, color: getColor(prev.length) }]);
     }
   };
 
@@ -584,7 +628,8 @@ export default function App() {
                 expanded={expandedModules[mod.id] || false}
                 onExpand={handleExpand}
                 onClose={handleClose}
-                onEdit={openEditForm} />
+                onEdit={openEditForm}
+                onGenerateFormat={(mod) => setFormatModule(mod)} />
             ))}
           </div>
         </div>
@@ -597,6 +642,13 @@ export default function App() {
           nextModuleNumber={modules.length + 1}
           modules={modules}
           editingModule={editingModule}
+        />
+      )}
+
+      {formatModule && (
+        <FormatForm
+          module={formatModule}
+          onClose={() => setFormatModule(null)}
         />
       )}
     </div>
